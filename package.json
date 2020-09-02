@@ -1,0 +1,10 @@
+{
+  "name": "com.strodio.unity-toolkit.photo-studio",
+  "version": "0.0.1",
+  "displayName": "Photo Studio",
+  "description": "A Unity tool for taking pictures for models",
+  "unity": "2019.1",
+  "author": {
+    "name": "Strom"
+  }
+}

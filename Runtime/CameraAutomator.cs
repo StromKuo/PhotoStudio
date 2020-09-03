@@ -1,100 +1,117 @@
-﻿using BehaviorDesigner.Runtime.Tasks;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(Camera))]
-public class CameraAutomator : MonoBehaviour
+namespace SKUnityToolkit.PhotoStudio
 {
-    [SerializeField]
-    CameraSnapshot _cameraSnapshot;
-
-    [SerializeField]
-    Transform _currentTarget;
-
-    private Camera _camera => this.GetComponent<Camera>();
-
-    [ContextMenu(nameof(Run))]
-    public void Run()
+    [RequireComponent(typeof(Camera))]
+    public class CameraAutomator : MonoBehaviour
     {
-        var cameraParams = this.GetCameraParams();
-        if (this._currentTarget.parent != null)
-        {
-            this.StartCoroutine(this.Test(cameraParams));
-        }
-        else
-        {
-            Debug.LogError("Current Target's parent can not be null");
-        }
-    }
+        [SerializeField]
+        CameraSnapshot _cameraSnapshot = null;
 
-    IEnumerator Test(CameraParams cameraParams)
-    {
-        float allCount = this._currentTarget.parent.childCount;
-        this.DisplayProgressBar(0);
-        foreach (Transform target in this._currentTarget.parent)
-        {
-            this.DisplayProgressBar(target.GetSiblingIndex() / allCount);
+        [SerializeField]
+        Transform _currentTarget = null;
 
-            try
-            {
-                this.ChangeCameraTarget(target, cameraParams);
-            }
-            catch (System.Exception)
-            {
-                this.ClearProgressBar();
-                throw;
-            }
+        Camera _camera => this.GetComponent<Camera>();
 
-            yield return null;
-
-            try
-            {
-                this._cameraSnapshot.Take(target.gameObject);
-            }
-            catch (System.Exception)
-            {
-                this.ClearProgressBar();
-                throw;
-            }
-            
-            
-            yield return new WaitForSeconds(2);
-        }
-        this.ClearProgressBar();
-    }
-
-    void DisplayProgressBar(float progress)
-    {
 #if UNITY_EDITOR
-        UnityEditor.EditorUtility.DisplayProgressBar("PhotoStudio", "ing...", progress);
-#endif
-    }
+        [ContextMenu(nameof(Run))]
+        public void Run()
+        {
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorUtility.DisplayDialog("PhotoStudio", "This tool can only run when editor playing.", "OK");
+                return;
+            }
 
-    void ClearProgressBar()
-    {
+            var cameraParams = GetCameraRelativeInfo();
+            if (_currentTarget.parent != null)
+            {
+                StartCoroutine(Test(cameraParams));
+            }
+            else
+            {
+                Debug.LogError("Current Target's parent can not be null");
+            }
+        }
+#endif
+
+        IEnumerator Test(CameraRelativeInfo cameraParams)
+        {
+            float allCount = _currentTarget.parent.childCount;
+            DisplayProgressBar(0);
+            foreach (Transform target in _currentTarget.parent)
+            {
+                DisplayProgressBar(target.GetSiblingIndex() / allCount);
+
+                try
+                {
+                    ChangeCameraTarget(target, cameraParams);
+                }
+                catch (System.Exception)
+                {
+                    ClearProgressBar();
+                    throw;
+                }
+
+                yield return null;
+
+                try
+                {
+                    if (_cameraSnapshot != null)
+                    {
+                        _cameraSnapshot.Take(target.gameObject);
+                    }
+                    else
+                    {
+                        Debug.LogError("Camera Snapshot is null");
+                    }
+                }
+                catch (System.Exception)
+                {
+                    ClearProgressBar();
+                    throw;
+                }
+
+
+                yield return new WaitForSeconds(1);
+            }
+            ClearProgressBar();
+        }
+
+        void DisplayProgressBar(float progress)
+        {
 #if UNITY_EDITOR
-        UnityEditor.EditorUtility.ClearProgressBar();
+            UnityEditor.EditorUtility.DisplayProgressBar("PhotoStudio", "ing...", progress);
 #endif
-    }
+        }
 
-    private void ChangeCameraTarget(Transform target, CameraParams cameraParams)
-    {
-        this._camera.transform.position = target.TransformPoint(cameraParams.localPosition);
-        this._camera.transform.rotation = target.rotation * cameraParams.localRotation;
-    }
+        void ClearProgressBar()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.ClearProgressBar();
+#endif
+        }
 
-    private CameraParams GetCameraParams()
-    {
-        var ret = new CameraParams();
-        ret.localPosition = this.transform.position - this._currentTarget.position;
-        ret.localRotation = Quaternion.FromToRotation(this._currentTarget.forward, this.transform.forward);
-        return ret;
-    }
+        private void ChangeCameraTarget(Transform target, CameraRelativeInfo cameraParams)
+        {
+            //this._camera.transform.position = target.TransformPoint(cameraParams.localPosition);
+            _camera.transform.position = target.rotation * cameraParams.localPosition + target.position;
+            _camera.transform.rotation = target.rotation * cameraParams.localRotation;
+        }
 
-    class CameraParams
-    {
-        public Vector3 localPosition;
-        public Quaternion localRotation;
+        private CameraRelativeInfo GetCameraRelativeInfo()
+        {
+            var ret = new CameraRelativeInfo();
+            ret.localPosition = transform.position - _currentTarget.position;
+            ret.localRotation = Quaternion.FromToRotation(_currentTarget.forward, transform.forward);
+            return ret;
+        }
+
+        struct CameraRelativeInfo
+        {
+            public Vector3 localPosition;
+            public Quaternion localRotation;
+        }
     }
 }

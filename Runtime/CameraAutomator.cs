@@ -9,10 +9,14 @@ namespace SKUnityToolkit.PhotoStudio
         [SerializeField]
         CameraSnapshot _cameraSnapshot = null;
 
+        [Tooltip("The camera will check all the siblings of the current target one by one")]
         [SerializeField]
         Transform _currentTarget = null;
 
-        Camera _camera => this.GetComponent<Camera>();
+        [SerializeField]
+        float _intervalSeconds = 0.5f;
+
+        Camera _camera => GetComponent<Camera>();
 
 #if UNITY_EDITOR
         [ContextMenu(nameof(Run))]
@@ -74,7 +78,7 @@ namespace SKUnityToolkit.PhotoStudio
                 }
 
 
-                yield return new WaitForSeconds(1);
+                yield return new WaitForSeconds(_intervalSeconds);
             }
             ClearProgressBar();
         }
@@ -96,22 +100,23 @@ namespace SKUnityToolkit.PhotoStudio
         private void ChangeCameraTarget(Transform target, CameraRelativeInfo cameraParams)
         {
             //this._camera.transform.position = target.TransformPoint(cameraParams.localPosition);
-            _camera.transform.position = target.rotation * cameraParams.localPosition + target.position;
-            _camera.transform.rotation = target.rotation * cameraParams.localRotation;
+            //ignore the scale
+            _camera.transform.position = target.rotation * cameraParams.deltaPosition + target.position;
+            _camera.transform.rotation = target.rotation * cameraParams.deltaRotation;
         }
 
         private CameraRelativeInfo GetCameraRelativeInfo()
         {
             var ret = new CameraRelativeInfo();
-            ret.localPosition = transform.position - _currentTarget.position;
-            ret.localRotation = Quaternion.FromToRotation(_currentTarget.forward, transform.forward);
+            ret.deltaPosition = _camera.transform.position - _currentTarget.position;
+            ret.deltaRotation = _camera.transform.rotation * Quaternion.Inverse(_currentTarget.rotation);
             return ret;
         }
 
         struct CameraRelativeInfo
         {
-            public Vector3 localPosition;
-            public Quaternion localRotation;
+            public Vector3 deltaPosition;
+            public Quaternion deltaRotation;
         }
     }
 }

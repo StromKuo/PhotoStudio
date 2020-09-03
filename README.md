@@ -4,7 +4,7 @@ A simple Unity tool for taking pictures for your models/characters/gameobjects.
 
 ## Installation
 
-This is a Unity packge, just install it like a Unity packge.
+This is a Unity package, just install it like a Unity package.
 
 ## Usage
 

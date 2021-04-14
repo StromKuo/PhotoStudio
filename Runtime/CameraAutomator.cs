@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Linq;
 using UnityEngine;
 
 namespace SKUnityToolkit.PhotoStudio
@@ -15,6 +16,9 @@ namespace SKUnityToolkit.PhotoStudio
 
         [SerializeField]
         float _intervalSeconds = 0.5f;
+
+        [SerializeField]
+        bool _focusMeshCenter = false;
 
         Camera _camera => GetComponent<Camera>();
 
@@ -101,14 +105,35 @@ namespace SKUnityToolkit.PhotoStudio
         {
             //this._camera.transform.position = target.TransformPoint(cameraParams.localPosition);
             //ignore the scale
-            _camera.transform.position = target.rotation * cameraParams.deltaPosition + target.position;
+            _camera.transform.position = target.rotation * cameraParams.deltaPosition + GetTargetCompositePosition(target);
             _camera.transform.rotation = target.rotation * cameraParams.deltaRotation;
+        }
+
+        private Vector3 GetTargetCompositePosition(Transform target)
+        {
+            if (_focusMeshCenter)
+            {
+                var meshes1 = target.GetComponentsInChildren<SkinnedMeshRenderer>().Select(x => x.sharedMesh);
+                var meshes2 = target.GetComponentsInChildren<MeshFilter>().Select(x => x.sharedMesh);
+                var pivotOffset = Vector3.zero;
+                foreach (var item in meshes1.Concat(meshes2))
+                {
+                    pivotOffset += item.bounds.center;
+                }
+                pivotOffset /= (meshes1.Count() + meshes2.Count());
+
+                return target.position + pivotOffset;
+            }
+            else
+            {
+                return target.position;
+            }
         }
 
         private CameraRelativeInfo GetCameraRelativeInfo()
         {
             var ret = new CameraRelativeInfo();
-            ret.deltaPosition = _camera.transform.position - _currentTarget.position;
+            ret.deltaPosition = _camera.transform.position - GetTargetCompositePosition(_currentTarget);
             ret.deltaRotation = _camera.transform.rotation * Quaternion.Inverse(_currentTarget.rotation);
             return ret;
         }

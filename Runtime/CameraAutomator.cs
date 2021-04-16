@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -113,12 +114,12 @@ namespace SKUnityToolkit.PhotoStudio
         {
             if (_focusMeshCenter)
             {
-                var meshes1 = target.GetComponentsInChildren<SkinnedMeshRenderer>().Select(x => x.sharedMesh);
-                var meshes2 = target.GetComponentsInChildren<MeshFilter>().Select(x => x.sharedMesh);
+                var meshes1 = target.GetComponentsInChildren<SkinnedMeshRenderer>().Select(x => new KeyValuePair<Mesh, Transform>(x.sharedMesh, x.transform));
+                var meshes2 = target.GetComponentsInChildren<MeshFilter>().Select(x => new KeyValuePair<Mesh, Transform>(x.sharedMesh, x.transform));
                 var pivotOffset = Vector3.zero;
                 foreach (var item in meshes1.Concat(meshes2))
                 {
-                    pivotOffset += item.bounds.center;
+                    pivotOffset += item.Value.rotation * item.Key.bounds.center;
                 }
                 pivotOffset /= (meshes1.Count() + meshes2.Count());
 
